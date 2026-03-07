@@ -1,0 +1,32 @@
+{
+  "name": "obliv-core",
+  "version": "0.1.0",
+  "description": "Core oblivious computing primitives for TypeScript",
+  "type": "module",
+  "main": "./dist/obliv_ops.js",
+  "types": "./dist/obliv_ops.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/obliv_ops.js",
+      "types": "./dist/obliv_ops.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "oblivious",
+    "constant-time",
+    "cryptography",
+    "side-channel"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
