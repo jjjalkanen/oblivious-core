@@ -1,5 +1,5 @@
 import { Nullable } from "./obliv8.js";
-import { cmovSwap } from "./obliv_byte.js";
+import { cmovSwap, OblivSelectable } from "./obliv_byte.js";
 
 /**
  * Oblivious stack for Nullable values with null-bubbling behavior.
@@ -7,7 +7,7 @@ import { cmovSwap } from "./obliv_byte.js";
  * When pushing, performs oblivious swaps to ensure null values sink to the bottom.
  * This maintains stack invariant without data-dependent branching.
  */
-export class ObliviousNullableStack<T extends Nullable> {
+export class ObliviousNullableStack<T extends Nullable & OblivSelectable> {
   private arr: T[];
   private sp: number;
   private createNull: () => T;

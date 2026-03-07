@@ -2,22 +2,24 @@
 /*  Bitonic Sort - Oblivious sorting network                 */
 /*-----------------------------------------------------------*/
 import { Obliv8, Nullable } from "./obliv8.js";
-import { eq, lt, and, or, xor, cmovSwap, INF8, TRUE8, FALSE8 } from "./obliv_byte.js";
+import { eq, lt, and, or, xor, cmov, cmovSwap, INF8, TRUE8, FALSE8, OblivSelectable } from "./obliv_byte.js";
 
 /**
  * Generic sort entry with up to 3 comparison keys.
+ * T must implement OblivSelectable so field-by-field selection works in MPC/FHE.
  * For single-key sorting, set k2 and k3 to INF8.
  */
-export interface SortEntry<T> extends Nullable {
+export interface SortEntry<T extends OblivSelectable> extends Nullable {
   data: T;         // The data being sorted
   k1: Obliv8;      // Primary sort key
   k2: Obliv8;      // Secondary sort key
   k3: Obliv8;      // Tertiary sort key
   oblivIsNull(): Obliv8;
+  oblivSelect(cond: Obliv8, other: SortEntry<T>): SortEntry<T>;
 }
 
 /* Create a sort entry with given data and keys */
-export function mkSortEntry<T>(data: T, k1: Obliv8, k2: Obliv8 = INF8, k3: Obliv8 = INF8): SortEntry<T> {
+export function mkSortEntry<T extends OblivSelectable>(data: T, k1: Obliv8, k2: Obliv8 = INF8, k3: Obliv8 = INF8): SortEntry<T> {
   return {
     data,
     k1,
@@ -25,17 +27,25 @@ export function mkSortEntry<T>(data: T, k1: Obliv8, k2: Obliv8 = INF8, k3: Obliv
     k3,
     oblivIsNull() {
       return eq(this.k1, INF8);
+    },
+    oblivSelect(cond: Obliv8, other: SortEntry<T>): SortEntry<T> {
+      return mkSortEntry<T>(
+        cmov(cond, this.data, other.data),
+        cmov(cond, this.k1, other.k1),
+        cmov(cond, this.k2, other.k2),
+        cmov(cond, this.k3, other.k3)
+      );
     }
   };
 }
 
 /* Create a null sort entry (all keys = 255) */
-export function nullSortEntry<T>(nullData: T): SortEntry<T> {
+export function nullSortEntry<T extends OblivSelectable>(nullData: T): SortEntry<T> {
   return mkSortEntry(nullData, INF8, INF8, INF8);
 }
 
 /* Lexicographic comparison: returns 1 if a < b, else 0 */
-export function isLess<T>(a: SortEntry<T>, b: SortEntry<T>): Obliv8 {
+export function isLess<T extends OblivSelectable>(a: SortEntry<T>, b: SortEntry<T>): Obliv8 {
   // a < b if:
   // - a.k1 < b.k1, OR
   // - a.k1 == b.k1 AND a.k2 < b.k2, OR
@@ -56,7 +66,7 @@ export function isLess<T>(a: SortEntry<T>, b: SortEntry<T>): Obliv8 {
 }
 
 /* Oblivious compare-and-swap */
-function obliviousCAS<T>(entries: SortEntry<T>[], i: number, j: number, dir: Obliv8): void {
+function obliviousCAS<T extends OblivSelectable>(entries: SortEntry<T>[], i: number, j: number, dir: Obliv8): void {
   // Swap condition: dir XOR isLess(entries[i], entries[j])
   // If dir=1 (ascending), swap if i > j (isLess=0)
   // If dir=0 (descending), swap if i < j (isLess=1)
@@ -76,7 +86,7 @@ function obliviousCAS<T>(entries: SortEntry<T>[], i: number, j: number, dir: Obl
  * Time complexity: O(n log^2 n) comparisons
  * Space complexity: O(1) - in-place
  */
-export function bitonicSort<T>(entries: SortEntry<T>[]): void {
+export function bitonicSort<T extends OblivSelectable>(entries: SortEntry<T>[]): void {
   const N = entries.length;
 
   // Outer loop: k = 2, 4, 8, ..., N
