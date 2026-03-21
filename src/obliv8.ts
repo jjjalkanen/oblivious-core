@@ -13,3 +13,9 @@ export interface Obliv8 extends Nullable {
   // Prevent use in boolean contexts to catch data leaks
   [Symbol.toPrimitive](hint: string): never;
 }
+
+// Branded boolean subtype of Obliv8 — always holds 0 (false) or 1 (true).
+// Being a subtype of Obliv8 keeps it backward-compatible with existing cmov/cmovSwap
+// signatures while giving callers stronger type-level guarantees.
+declare const __oblivBool: unique symbol;
+export type ObliviousBool = Obliv8 & { readonly [__oblivBool]: true };

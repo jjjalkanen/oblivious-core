@@ -1,7 +1,7 @@
 /*-----------------------------------------------------------*/
 /*  core scalar (byte-level) helpers - used by lexer         */
 /*-----------------------------------------------------------*/
-import { Obliv8 } from "./obliv8.js";
+import { Obliv8, ObliviousBool } from "./obliv8.js";
 
 const mask8 = 0xFF;
 
@@ -18,6 +18,10 @@ const makeObliv8 = (value: number): Obliv8 => ({
     throw new Error("Obliv8 cannot be converted to primitive - this is a data leak! Use explicit oblivious operations (eq, lt, etc.) instead of if-statements.");
   }
 });
+
+/* Helper to create an ObliviousBool (0=false, 1=true) — platform internal only */
+const makeOblivBool = (value: number): ObliviousBool =>
+  makeObliv8(value & 1) as ObliviousBool;
 
 /* --- literals ---------------------------------------------*/
 export const lit8 = (x: number): Obliv8 => makeObliv8(x);
@@ -44,34 +48,55 @@ export const sub = (a: Obliv8, b: Obliv8): Obliv8 => makeObliv8(a.value - b.valu
 
 export const mul = (a: Obliv8, b: Obliv8): Obliv8 => makeObliv8(a.value * b.value);
 
-/* --- comparisons (byte-level, return 0 or 1) --------------*/
-export const eq = (a: Obliv8, b: Obliv8): Obliv8 =>
-  ((a.value ^ b.value) === 0) ? makeObliv8(1) : makeObliv8(0);
+/* --- comparisons (byte-level, return ObliviousBool) -------*/
+export const eq = (a: Obliv8, b: Obliv8): ObliviousBool =>
+  makeOblivBool((a.value ^ b.value) === 0 ? 1 : 0);
 
-export const lt = (a: Obliv8, b: Obliv8): Obliv8 =>
-  (a.value < b.value) ? makeObliv8(1) : makeObliv8(0);
+export const lt = (a: Obliv8, b: Obliv8): ObliviousBool =>
+  makeOblivBool(a.value < b.value ? 1 : 0);
 
-export const lte = (a: Obliv8, b: Obliv8): Obliv8 =>
-  (a.value <= b.value) ? makeObliv8(1) : makeObliv8(0);
+export const lte = (a: Obliv8, b: Obliv8): ObliviousBool =>
+  makeOblivBool(a.value <= b.value ? 1 : 0);
 
-export const gt = (a: Obliv8, b: Obliv8): Obliv8 =>
-  (a.value > b.value) ? makeObliv8(1) : makeObliv8(0);
+export const gt = (a: Obliv8, b: Obliv8): ObliviousBool =>
+  makeOblivBool(a.value > b.value ? 1 : 0);
 
-export const ge = (a: Obliv8, b: Obliv8): Obliv8 =>
-  (a.value >= b.value) ? makeObliv8(1) : makeObliv8(0);
+export const ge = (a: Obliv8, b: Obliv8): ObliviousBool =>
+  makeOblivBool(a.value >= b.value ? 1 : 0);
 
 /*-----------------------------------------------------------*/
 /*  Constants                                                */
 /*-----------------------------------------------------------*/
 
 /* General-purpose constants */
-export const INF8   = lit8(255);   // max byte — infinity / "not found" sentinel
-export const TRUE8  = lit8(1);     // oblivious boolean true
-export const FALSE8 = lit8(0);     // oblivious boolean false
+export const INF8   = lit8(255);              // max byte — infinity / "not found" sentinel
+export const TRUE8  = makeOblivBool(1);       // oblivious boolean true
+export const FALSE8 = makeOblivBool(0);       // oblivious boolean false
 
 /* Byte factories (consistent with nullToken/mkToken, nullNode/mkNode pattern) */
 export const nullByte = (): Obliv8 => makeObliv8(INF8.value);
 export const mkByte = (value: number): Obliv8 => makeObliv8(value);
+
+/* --- ObliviousBool operations -----------------------------*/
+
+/** Create an ObliviousBool from a plain JS boolean. */
+export const createObliviousBool = (b: boolean): ObliviousBool =>
+  makeOblivBool(b ? 1 : 0);
+
+/** Logical AND — both inputs must be 0 or 1; result is 0 or 1. */
+export const andBool = (a: ObliviousBool, b: ObliviousBool): ObliviousBool =>
+  makeOblivBool(a.value & b.value);
+
+/** Logical OR — both inputs must be 0 or 1; result is 0 or 1. */
+export const orBool = (a: ObliviousBool, b: ObliviousBool): ObliviousBool =>
+  makeOblivBool(a.value | b.value);
+
+/**
+ * Logical NOT — safe complement that always returns 0 or 1.
+ * Unlike bitwise not(), which returns 254 for TRUE8 and is unsafe as a cmov condition.
+ */
+export const notBool = (a: ObliviousBool): ObliviousBool =>
+  makeOblivBool(1 - a.value);
 
 /*-----------------------------------------------------------*/
 /*  OblivSelectable protocol                                 */
