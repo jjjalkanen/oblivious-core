@@ -17,5 +17,7 @@ export { bitonicSort, mkSortEntry, nullSortEntry, isLess } from "./bitonic_sort.
 export type { SortEntry } from "./bitonic_sort.js";
 
 export { createObliviousInt, eqInt, gtInt,
-         createObliviousString, eqString, gtString } from "./obliv_higher.js";
-export type { ObliviousInt, ObliviousString } from "./obliv_higher.js";
+         createObliviousString, eqString, gtString,
+         oblivIngest } from "./obliv_higher.js";
+export type { ObliviousInt, ObliviousString, ObliviousValue } from "./obliv_higher.js";
+

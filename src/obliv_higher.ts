@@ -4,8 +4,10 @@
 /*  code cannot access their internals.                      */
 /*-----------------------------------------------------------*/
 import { Obliv8, ObliviousBool } from "./obliv8.js";
-import { lit8, eq, gt, andBool, orBool, TRUE8, FALSE8, createObliviousBool } from "./obliv_byte.js";
+import { lit8, eq, gt, andBool, orBool, TRUE8, FALSE8, createObliviousBool, nullByte } from "./obliv_byte.js";
 import type { OblivSelectable } from "./obliv_byte.js";
+import { decryptByte, getCounter } from "./obliv_crypto.js";
+const reveal = (o: Obliv8): number => decryptByte(o.value, getCounter(o));
 
 /*-----------------------------------------------------------*/
 /*  ObliviousInt — opaque 64-bit integer (Lamport clocks)    */
@@ -29,7 +31,7 @@ const _makeObliviousInt = (bytes: Obliv8[]): ObliviousInt => ({
   _bytes: bytes,
   // Platform implementation: may look inside cond (simulation only)
   oblivSelect(cond: Obliv8, other: ObliviousInt): ObliviousInt {
-    return cond.value === 1
+    return reveal(cond) === 1
       ? (this as unknown as ObliviousInt)
       : other;
   },
@@ -99,7 +101,7 @@ const _makeObliviousString = (bytes: Obliv8[]): ObliviousString => ({
   _bytes: bytes,
   // Platform implementation: may look inside cond (simulation only)
   oblivSelect(cond: Obliv8, other: ObliviousString): ObliviousString {
-    return cond.value === 1
+    return reveal(cond) === 1
       ? (this as unknown as ObliviousString)
       : other;
   },
@@ -151,3 +153,29 @@ export const eqString = (
   }
   return result;
 };
+
+/*-----------------------------------------------------------*/
+/*  oblivIngest — client-side convenience entry point        */
+/*-----------------------------------------------------------*/
+
+/** Union of all oblivious scalar value types. */
+export type ObliviousValue = ObliviousString | ObliviousInt | Obliv8;
+
+/**
+ * Convert a plain JS scalar to its oblivious equivalent.
+ *
+ * This is the single entry point for client/test code that prepares
+ * plaintext values before handing them to Automerge.  Automerge itself
+ * never calls this function.
+ *
+ * - string  → ObliviousString (UTF-8 encoded, per-byte encrypted)
+ * - number  → ObliviousInt    (64-bit big-endian, per-byte encrypted)
+ * - boolean → TRUE8 / FALSE8  (Obliv8 singleton)
+ * - null    → nullByte()      (Obliv8 sentinel 0xFF)
+ */
+export function oblivIngest(value: string | number | boolean | null): ObliviousValue {
+  if (typeof value === "string") return createObliviousString(value);
+  if (typeof value === "number") return createObliviousInt(value);
+  if (typeof value === "boolean") return value ? TRUE8 : FALSE8;
+  return nullByte();
+}

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { bitonicSort, mkSortEntry, nullSortEntry } from './bitonic_sort.js';
 import { lit8, INF8 } from './obliv_byte.js';
+import { revealByte } from './obliv_crypto.js';
 
 describe('bitonicSort', () => {
   it('sorts two elements - reversed', () => {
@@ -11,8 +12,8 @@ describe('bitonicSort', () => {
 
     bitonicSort(entries);
 
-    expect(entries[0].k1.value).toBe(0);
-    expect(entries[1].k1.value).toBe(1);
+    expect(revealByte(entries[0].k1)).toBe(0);
+    expect(revealByte(entries[1].k1)).toBe(1);
   });
 
   it('sorts two elements - already sorted', () => {
@@ -23,8 +24,8 @@ describe('bitonicSort', () => {
 
     bitonicSort(entries);
 
-    expect(entries[0].k1.value).toBe(0);
-    expect(entries[1].k1.value).toBe(1);
+    expect(revealByte(entries[0].k1)).toBe(0);
+    expect(revealByte(entries[1].k1)).toBe(1);
   });
 
   it('sorts four elements', () => {
@@ -37,10 +38,10 @@ describe('bitonicSort', () => {
 
     bitonicSort(entries);
 
-    expect(entries[0].k1.value).toBe(1);
-    expect(entries[1].k1.value).toBe(2);
-    expect(entries[2].k1.value).toBe(3);
-    expect(entries[3].k1.value).toBe(4);
+    expect(revealByte(entries[0].k1)).toBe(1);
+    expect(revealByte(entries[1].k1)).toBe(2);
+    expect(revealByte(entries[2].k1)).toBe(3);
+    expect(revealByte(entries[3].k1)).toBe(4);
   });
 
   it('uses K2 for tiebreaking', () => {
@@ -54,12 +55,12 @@ describe('bitonicSort', () => {
     bitonicSort(entries);
 
     // k2=0 should come before k2=1
-    expect(entries[0].k1.value).toBe(1);
-    expect(entries[0].k2.value).toBe(0);
-    expect(entries[1].k1.value).toBe(1);
-    expect(entries[1].k2.value).toBe(1);
-    expect(entries[2].k1.value).toBe(255);
-    expect(entries[3].k1.value).toBe(255);
+    expect(revealByte(entries[0].k1)).toBe(1);
+    expect(revealByte(entries[0].k2)).toBe(0);
+    expect(revealByte(entries[1].k1)).toBe(1);
+    expect(revealByte(entries[1].k2)).toBe(1);
+    expect(revealByte(entries[2].k1)).toBe(255);
+    expect(revealByte(entries[3].k1)).toBe(255);
   });
 
   it('uses K3 for tiebreaking', () => {
@@ -73,14 +74,14 @@ describe('bitonicSort', () => {
     bitonicSort(entries);
 
     // k3=251 should come before k3=253
-    expect(entries[0].k1.value).toBe(5);
-    expect(entries[0].k2.value).toBe(1);
-    expect(entries[0].k3.value).toBe(251);
-    expect(entries[1].k1.value).toBe(5);
-    expect(entries[1].k2.value).toBe(1);
-    expect(entries[1].k3.value).toBe(253);
-    expect(entries[2].k1.value).toBe(255);
-    expect(entries[3].k1.value).toBe(255);
+    expect(revealByte(entries[0].k1)).toBe(5);
+    expect(revealByte(entries[0].k2)).toBe(1);
+    expect(revealByte(entries[0].k3)).toBe(251);
+    expect(revealByte(entries[1].k1)).toBe(5);
+    expect(revealByte(entries[1].k2)).toBe(1);
+    expect(revealByte(entries[1].k3)).toBe(253);
+    expect(revealByte(entries[2].k1)).toBe(255);
+    expect(revealByte(entries[3].k1)).toBe(255);
   });
 
   it('padding (255,255,255) sorts last', () => {
@@ -93,10 +94,10 @@ describe('bitonicSort', () => {
 
     bitonicSort(entries);
 
-    expect(entries[0].k1.value).toBe(1);
-    expect(entries[1].k1.value).toBe(2);
-    expect(entries[2].k1.value).toBe(255);
-    expect(entries[3].k1.value).toBe(255);
+    expect(revealByte(entries[0].k1)).toBe(1);
+    expect(revealByte(entries[1].k1)).toBe(2);
+    expect(revealByte(entries[2].k1)).toBe(255);
+    expect(revealByte(entries[3].k1)).toBe(255);
   });
 
   it('sorts eight elements - reversed', () => {
@@ -114,7 +115,7 @@ describe('bitonicSort', () => {
     bitonicSort(entries);
 
     for (let i = 0; i < 8; i++) {
-      expect(entries[i].k1.value).toBe(i + 1);
+      expect(revealByte(entries[i].k1)).toBe(i + 1);
     }
   });
 });

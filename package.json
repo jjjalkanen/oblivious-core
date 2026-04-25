@@ -9,6 +9,10 @@
     ".": {
       "import": "./dist/obliv_ops.js",
       "types": "./dist/obliv_ops.d.ts"
+    },
+    "./testing": {
+      "import": "./dist/obliv_test.js",
+      "types": "./dist/obliv_test.d.ts"
     }
   },
   "scripts": {

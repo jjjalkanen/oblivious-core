@@ -2,22 +2,30 @@
 /*  core scalar (byte-level) helpers - used by lexer         */
 /*-----------------------------------------------------------*/
 import { Obliv8, ObliviousBool } from "./obliv8.js";
+import { encryptByte, decryptByte, registerCounter, getCounter } from "./obliv_crypto.js";
 
 const mask8 = 0xFF;
 
+/* Module-private decrypt helper */
+const reveal = (o: Obliv8): number => decryptByte(o.value, getCounter(o));
+
 /* Helper to create Obliv8 with toPrimitive protection */
-const makeObliv8 = (value: number): Obliv8 => ({
-  value: value & mask8,
-  oblivIsNull() {
-    return eq(this as Obliv8, INF8);
-  },
-  oblivSelect(cond: Obliv8, other: Obliv8): Obliv8 {
-    return cond.value === 1 ? (this as Obliv8) : other;
-  },
-  [Symbol.toPrimitive](_hint: string): never {
-    throw new Error("Obliv8 cannot be converted to primitive - this is a data leak! Use explicit oblivious operations (eq, lt, etc.) instead of if-statements.");
-  }
-});
+const makeObliv8 = (value: number): Obliv8 => {
+  const plain = value & mask8;
+  const { encrypted, ctr } = encryptByte(plain);
+  const obj: Obliv8 = {
+    value: encrypted,
+    oblivIsNull() { return eq(this as Obliv8, INF8); },
+    oblivSelect(cond: Obliv8, other: Obliv8): Obliv8 {
+      return reveal(cond) === 1 ? (this as Obliv8) : other;
+    },
+    [Symbol.toPrimitive](_hint: string): never {
+      throw new Error("Obliv8 cannot be converted to primitive - this is a data leak! Use explicit oblivious operations (eq, lt, etc.) instead of if-statements.");
+    }
+  };
+  registerCounter(obj, ctr);
+  return obj;
+};
 
 /* Helper to create an ObliviousBool (0=false, 1=true) — platform internal only */
 const makeOblivBool = (value: number): ObliviousBool =>
@@ -29,40 +37,40 @@ export const lit8 = (x: number): Obliv8 => makeObliv8(x);
 export const ord = (c: string): Obliv8 => makeObliv8(c.charCodeAt(0));
 
 /* --- bitwise (byte-level) ---------------------------------*/
-export const and = (a: Obliv8, b: Obliv8): Obliv8 => makeObliv8(a.value & b.value);
+export const and = (a: Obliv8, b: Obliv8): Obliv8 => makeObliv8(reveal(a) & reveal(b));
 
-export const or = (a: Obliv8, b: Obliv8): Obliv8 => makeObliv8(a.value | b.value);
+export const or = (a: Obliv8, b: Obliv8): Obliv8 => makeObliv8(reveal(a) | reveal(b));
 
-export const xor = (a: Obliv8, b: Obliv8): Obliv8 => makeObliv8(a.value ^ b.value);
+export const xor = (a: Obliv8, b: Obliv8): Obliv8 => makeObliv8(reveal(a) ^ reveal(b));
 
-export const not = (a: Obliv8): Obliv8 => makeObliv8(~a.value);
+export const not = (a: Obliv8): Obliv8 => makeObliv8(~reveal(a));
 
-export const shl = (a: Obliv8, n: number): Obliv8 => makeObliv8(a.value << n);
+export const shl = (a: Obliv8, n: number): Obliv8 => makeObliv8(reveal(a) << n);
 
-export const shr = (a: Obliv8, n: number): Obliv8 => makeObliv8(a.value >>> n);
+export const shr = (a: Obliv8, n: number): Obliv8 => makeObliv8(reveal(a) >>> n);
 
 /* --- arithmetic (wrapping, byte-level) --------------------*/
-export const add = (a: Obliv8, b: Obliv8): Obliv8 => makeObliv8(a.value + b.value);
+export const add = (a: Obliv8, b: Obliv8): Obliv8 => makeObliv8(reveal(a) + reveal(b));
 
-export const sub = (a: Obliv8, b: Obliv8): Obliv8 => makeObliv8(a.value - b.value);
+export const sub = (a: Obliv8, b: Obliv8): Obliv8 => makeObliv8(reveal(a) - reveal(b));
 
-export const mul = (a: Obliv8, b: Obliv8): Obliv8 => makeObliv8(a.value * b.value);
+export const mul = (a: Obliv8, b: Obliv8): Obliv8 => makeObliv8(reveal(a) * reveal(b));
 
 /* --- comparisons (byte-level, return ObliviousBool) -------*/
 export const eq = (a: Obliv8, b: Obliv8): ObliviousBool =>
-  makeOblivBool((a.value ^ b.value) === 0 ? 1 : 0);
+  makeOblivBool((reveal(a) ^ reveal(b)) === 0 ? 1 : 0);
 
 export const lt = (a: Obliv8, b: Obliv8): ObliviousBool =>
-  makeOblivBool(a.value < b.value ? 1 : 0);
+  makeOblivBool(reveal(a) < reveal(b) ? 1 : 0);
 
 export const lte = (a: Obliv8, b: Obliv8): ObliviousBool =>
-  makeOblivBool(a.value <= b.value ? 1 : 0);
+  makeOblivBool(reveal(a) <= reveal(b) ? 1 : 0);
 
 export const gt = (a: Obliv8, b: Obliv8): ObliviousBool =>
-  makeOblivBool(a.value > b.value ? 1 : 0);
+  makeOblivBool(reveal(a) > reveal(b) ? 1 : 0);
 
 export const ge = (a: Obliv8, b: Obliv8): ObliviousBool =>
-  makeOblivBool(a.value >= b.value ? 1 : 0);
+  makeOblivBool(reveal(a) >= reveal(b) ? 1 : 0);
 
 /*-----------------------------------------------------------*/
 /*  Constants                                                */
@@ -74,7 +82,7 @@ export const TRUE8  = makeOblivBool(1);       // oblivious boolean true
 export const FALSE8 = makeOblivBool(0);       // oblivious boolean false
 
 /* Byte factories (consistent with nullToken/mkToken, nullNode/mkNode pattern) */
-export const nullByte = (): Obliv8 => makeObliv8(INF8.value);
+export const nullByte = (): Obliv8 => makeObliv8(255);
 export const mkByte = (value: number): Obliv8 => makeObliv8(value);
 
 /* --- ObliviousBool operations -----------------------------*/
@@ -85,18 +93,18 @@ export const createObliviousBool = (b: boolean): ObliviousBool =>
 
 /** Logical AND — both inputs must be 0 or 1; result is 0 or 1. */
 export const andBool = (a: ObliviousBool, b: ObliviousBool): ObliviousBool =>
-  makeOblivBool(a.value & b.value);
+  makeOblivBool(reveal(a) & reveal(b));
 
 /** Logical OR — both inputs must be 0 or 1; result is 0 or 1. */
 export const orBool = (a: ObliviousBool, b: ObliviousBool): ObliviousBool =>
-  makeOblivBool(a.value | b.value);
+  makeOblivBool(reveal(a) | reveal(b));
 
 /**
  * Logical NOT — safe complement that always returns 0 or 1.
  * Unlike bitwise not(), which returns 254 for TRUE8 and is unsafe as a cmov condition.
  */
 export const notBool = (a: ObliviousBool): ObliviousBool =>
-  makeOblivBool(1 - a.value);
+  makeOblivBool(1 - reveal(a));
 
 /*-----------------------------------------------------------*/
 /*  OblivSelectable protocol                                 */

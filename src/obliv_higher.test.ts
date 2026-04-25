@@ -7,12 +7,14 @@ import {
   TRUE8, FALSE8,
   createObliviousInt, eqInt, gtInt,
   createObliviousString, eqString,
-  cmov,
+  cmov, lit8,
 } from "./obliv_ops.js";
-import type { ObliviousBool } from "./obliv_ops.js";
+import type { ObliviousBool, Obliv8 } from "./obliv_ops.js";
+import { revealByte } from "./obliv_crypto.js";
+import { isOblivTrue, isOblivFalse } from "./obliv_test.js";
 
 // Helper: unwrap ObliviousBool to 0 or 1
-const unwrap = (b: ObliviousBool): number => (b as unknown as { value: number }).value;
+const unwrap = (b: ObliviousBool): number => revealByte(b as unknown as Obliv8);
 
 describe("ObliviousBool", () => {
   it("createObliviousBool(true) gives value 1", () => {
@@ -144,5 +146,31 @@ describe("ObliviousString", () => {
     expect(unwrap(eqString(result, a))).toBe(1);
     const result2 = cmov(FALSE8, a, b);
     expect(unwrap(eqString(result2, b))).toBe(1);
+  });
+});
+
+describe("Obliv8 encryption boundary", () => {
+  it("Obliv8.value is ciphertext, not plaintext", () => {
+    const x = lit8(42);
+    expect(x.value).not.toBe(42);
+    expect(revealByte(x)).toBe(42);
+  });
+});
+
+describe("isOblivTrue / isOblivFalse test helpers", () => {
+  it("isOblivTrue(TRUE8) is true", () => {
+    expect(isOblivTrue(TRUE8)).toBe(true);
+  });
+
+  it("isOblivTrue(FALSE8) is false", () => {
+    expect(isOblivTrue(FALSE8)).toBe(false);
+  });
+
+  it("isOblivFalse(FALSE8) is true", () => {
+    expect(isOblivFalse(FALSE8)).toBe(true);
+  });
+
+  it("isOblivFalse(TRUE8) is false", () => {
+    expect(isOblivFalse(TRUE8)).toBe(false);
   });
 });
