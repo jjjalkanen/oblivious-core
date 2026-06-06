@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Core oblivious computing primitives for TypeScript",
   "type": "module",
+  "files": ["dist/", "src/", "README.md", "LICENSE"],
   "main": "./dist/obliv_ops.js",
   "types": "./dist/obliv_ops.d.ts",
   "exports": {
