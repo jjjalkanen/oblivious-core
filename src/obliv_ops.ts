@@ -16,8 +16,15 @@ export { ObliviousNullableStack } from "./oblivious_stack.js";
 export { bitonicSort, mkSortEntry, nullSortEntry, isLess } from "./bitonic_sort.js";
 export type { SortEntry } from "./bitonic_sort.js";
 
-export { createObliviousInt, eqInt, gtInt,
+export { createObliviousInt, eqInt, gtInt, geInt,
          createObliviousString, eqString, gtString,
          oblivIngest } from "./obliv_higher.js";
 export type { ObliviousInt, ObliviousString, ObliviousValue } from "./obliv_higher.js";
+
+export { ObliviousSequence } from "./obliv_sequence.js";
+
+export { createOblivU16, eqU16, addU16, subU16, u16Hi, u16Lo } from "./obliv_u16.js";
+export type { OblivU16 } from "./obliv_u16.js";
+
+export { ObliviousByteArray, ObliviousU16Array, ObliviousTable } from "./obliv_array.js";
 

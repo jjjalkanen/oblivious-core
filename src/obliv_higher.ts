@@ -78,6 +78,12 @@ export const gtInt = (a: ObliviousInt, b: ObliviousInt): ObliviousBool => {
   return isGreater;
 };
 
+/**
+ * Oblivious greater-than-or-equal: returns ObliviousBool(1) iff a >= b.
+ */
+export const geInt = (a: ObliviousInt, b: ObliviousInt): ObliviousBool =>
+  orBool(gtInt(a, b), eqInt(a, b));
+
 /*-----------------------------------------------------------*/
 /*  ObliviousString — opaque immutable string handle         */
 /*-----------------------------------------------------------*/
